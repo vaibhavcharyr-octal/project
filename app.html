@@ -1,0 +1,1097 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AdaptiveLearn - Personalized Study Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
+        
+        * { box-sizing: border-box; }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+        }
+        
+        .gradient-bg { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .gradient-bg::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/><circle cx="50" cy="10" r="0.5" fill="white" opacity="0.15"/><circle cx="20" cy="80" r="0.5" fill="white" opacity="0.15"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            pointer-events: none;
+        }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card-hover { 
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
+            transform: translateZ(0);
+        }
+        
+        .card-hover:hover { 
+            transform: translateY(-8px) scale(1.02); 
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+        }
+        
+        .progress-bar { 
+            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); 
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .progress-bar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            animation: shimmer 2s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        .fade-in { 
+            animation: fadeInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1); 
+        }
+        
+        @keyframes fadeInUp { 
+            from { 
+                opacity: 0; 
+                transform: translateY(30px) scale(0.95); 
+            } 
+            to { 
+                opacity: 1; 
+                transform: translateY(0) scale(1); 
+            } 
+        }
+        
+        .pulse-dot { 
+            animation: pulse 2s infinite; 
+            position: relative;
+        }
+        
+        .pulse-dot::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-radius: 50%;
+            background: inherit;
+            animation: ripple 2s infinite;
+        }
+        
+        @keyframes pulse { 
+            0%, 100% { opacity: 1; transform: scale(1); } 
+            50% { opacity: 0.7; transform: scale(1.1); } 
+        }
+        
+        @keyframes ripple {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(2); opacity: 0; }
+        }
+        
+        .floating { animation: float 6s ease-in-out infinite; }
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .slide-in-left { animation: slideInLeft 0.5s ease-out; }
+        @keyframes slideInLeft {
+            from { transform: translateX(-100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        .slide-in-right { animation: slideInRight 0.5s ease-out; }
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes slideOutRight {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+        
+        .glow-button {
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            transition: all 0.3s ease;
+        }
+        
+        .glow-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: left 0.5s;
+        }
+        
+        .glow-button:hover::before {
+            left: 100%;
+        }
+        
+        .glow-button:hover {
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.5);
+            transform: translateY(-2px);
+        }
+        
+        .stat-number {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .nav-item {
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        
+        .nav-item::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 50%;
+            width: 0;
+            height: 2px;
+            background: white;
+            transition: all 0.3s ease;
+            transform: translateX(-50%);
+        }
+        
+        .nav-item.active::after,
+        .nav-item:hover::after {
+            width: 100%;
+        }
+        
+        .upload-zone {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            border: 2px dashed rgba(102, 126, 234, 0.3);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .upload-zone::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(102, 126, 234, 0.1) 0%, transparent 70%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .upload-zone:hover {
+            border-color: rgba(102, 126, 234, 0.6);
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%);
+        }
+        
+        .upload-zone:hover::before {
+            opacity: 1;
+        }
+        
+        .notification {
+            backdrop-filter: blur(10px);
+            animation: slideInRight 0.3s ease-out;
+        }
+        
+        .quiz-option {
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .quiz-option:hover {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            border-color: rgba(102, 126, 234, 0.4);
+            transform: translateX(5px);
+        }
+        
+        .quiz-option input:checked + span {
+            color: #667eea;
+            font-weight: 600;
+        }
+        
+        .loading-spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(102, 126, 234, 0.3);
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .progress-ring {
+            transform: rotate(-90deg);
+        }
+        
+        .progress-ring circle {
+            stroke-dasharray: 251.2;
+            stroke-dashoffset: 251.2;
+            transition: stroke-dashoffset 0.5s ease-in-out;
+        }
+        
+        .icon-bounce {
+            animation: iconBounce 2s ease-in-out infinite;
+        }
+        
+        @keyframes iconBounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-10px); }
+            60% { transform: translateY(-5px); }
+        }
+        
+        .gradient-text {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .blur-bg {
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.8);
+        }
+        
+        .shadow-glow {
+            box-shadow: 0 0 30px rgba(102, 126, 234, 0.3);
+        }
+        
+        .text-shadow {
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Navigation -->
+    <nav class="gradient-bg text-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
+                        <span class="text-purple-600 font-bold text-lg">📚</span>
+                    </div>
+                    <h1 class="text-xl font-bold">AdaptiveLearn</h1>
+                </div>
+                <div class="flex items-center space-x-6">
+                    <button onclick="showSection('dashboard')" class="nav-item nav-btn hover:bg-white hover:bg-opacity-20 px-4 py-2 rounded-lg transition-all duration-300 text-shadow active">
+                        <span class="flex items-center space-x-2">
+                            <span class="text-lg">🏠</span>
+                            <span>Dashboard</span>
+                        </span>
+                    </button>
+                    <button onclick="showSection('documents')" class="nav-item nav-btn hover:bg-white hover:bg-opacity-20 px-4 py-2 rounded-lg transition-all duration-300 text-shadow">
+                        <span class="flex items-center space-x-2">
+                            <span class="text-lg">📚</span>
+                            <span>Documents</span>
+                        </span>
+                    </button>
+                    <button onclick="showSection('assessments')" class="nav-item nav-btn hover:bg-white hover:bg-opacity-20 px-4 py-2 rounded-lg transition-all duration-300 text-shadow">
+                        <span class="flex items-center space-x-2">
+                            <span class="text-lg">📝</span>
+                            <span>Assessments</span>
+                        </span>
+                    </button>
+                    <button onclick="showSection('analytics')" class="nav-item nav-btn hover:bg-white hover:bg-opacity-20 px-4 py-2 rounded-lg transition-all duration-300 text-shadow">
+                        <span class="flex items-center space-x-2">
+                            <span class="text-lg">📊</span>
+                            <span>Analytics</span>
+                        </span>
+                    </button>
+                    <div class="w-10 h-10 bg-white bg-opacity-20 rounded-full flex items-center justify-center hover:bg-opacity-30 transition-all duration-300 cursor-pointer floating">
+                        <span class="text-sm font-semibold gradient-text">JS</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        <!-- Dashboard Section -->
+        <div id="dashboard" class="section fade-in">
+            <div class="mb-8">
+                <h2 class="text-3xl font-bold text-gray-900 mb-2">Welcome back! 👋</h2>
+                <p class="text-gray-600">Here's your learning progress and personalized recommendations</p>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="glass-card rounded-xl p-6 card-hover slide-in-left">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-600 mb-1">Study Streak</p>
+                            <p class="text-3xl font-bold stat-number">12 days</p>
+                            <div class="flex items-center mt-2">
+                                <span class="text-xs text-green-600 font-medium">+2 from last week</span>
+                            </div>
+                        </div>
+                        <div class="w-14 h-14 bg-gradient-to-br from-orange-400 to-red-500 rounded-xl flex items-center justify-center shadow-lg icon-bounce">
+                            <span class="text-2xl">🔥</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="glass-card rounded-xl p-6 card-hover slide-in-left" style="animation-delay: 0.1s;">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-600 mb-1">Completed Lessons</p>
+                            <p class="text-3xl font-bold stat-number">47</p>
+                            <div class="flex items-center mt-2">
+                                <span class="text-xs text-blue-600 font-medium">+5 this week</span>
+                            </div>
+                        </div>
+                        <div class="w-14 h-14 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-xl flex items-center justify-center shadow-lg floating">
+                            <span class="text-2xl">📖</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="glass-card rounded-xl p-6 card-hover slide-in-left" style="animation-delay: 0.2s;">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-600 mb-1">Average Score</p>
+                            <p class="text-3xl font-bold stat-number">87%</p>
+                            <div class="flex items-center mt-2">
+                                <span class="text-xs text-purple-600 font-medium">+3% improvement</span>
+                            </div>
+                        </div>
+                        <div class="w-14 h-14 bg-gradient-to-br from-purple-400 to-pink-500 rounded-xl flex items-center justify-center shadow-lg">
+                            <span class="text-2xl">🎯</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="glass-card rounded-xl p-6 card-hover slide-in-left" style="animation-delay: 0.3s;">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-600 mb-1">Study Time</p>
+                            <p class="text-3xl font-bold stat-number">24h</p>
+                            <div class="flex items-center mt-2">
+                                <span class="text-xs text-orange-600 font-medium">This month</span>
+                            </div>
+                        </div>
+                        <div class="w-14 h-14 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-xl flex items-center justify-center shadow-lg">
+                            <span class="text-2xl">⏱️</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Recommendations -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                <div class="glass-card rounded-xl p-6 slide-in-right">
+                    <div class="flex items-center space-x-3 mb-6">
+                        <div class="w-10 h-10 bg-gradient-to-br from-green-400 to-blue-500 rounded-lg flex items-center justify-center">
+                            <span class="text-xl">🤖</span>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="text-lg font-semibold gradient-text">AI Study Recommendations</h3>
+                            <div class="flex items-center space-x-2 mt-1">
+                                <div class="pulse-dot w-2 h-2 bg-green-500 rounded-full"></div>
+                                <span class="text-xs text-gray-500">Live recommendations</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="space-y-4">
+                        <div class="p-5 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200 hover:shadow-md transition-all duration-300">
+                            <div class="flex items-start justify-between mb-3">
+                                <div class="flex items-center space-x-2">
+                                    <span class="text-lg">📐</span>
+                                    <p class="font-semibold text-blue-900">Focus on Calculus Integration</p>
+                                </div>
+                                <span class="px-2 py-1 bg-blue-200 text-blue-800 text-xs rounded-full font-medium">Priority</span>
+                            </div>
+                            <p class="text-sm text-blue-700 mb-3">Your recent quiz shows 68% accuracy. Recommended: 30 min practice</p>
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-full bg-blue-200 rounded-full h-2 w-20">
+                                        <div class="bg-blue-600 h-2 rounded-full" style="width: 68%"></div>
+                                    </div>
+                                    <span class="text-xs text-blue-600 font-medium">68%</span>
+                                </div>
+                                <button onclick="startRecommendedStudy('calculus')" class="glow-button text-white px-4 py-2 rounded-lg text-sm font-medium">Start Session</button>
+                            </div>
+                        </div>
+                        <div class="p-5 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200 hover:shadow-md transition-all duration-300">
+                            <div class="flex items-start justify-between mb-3">
+                                <div class="flex items-center space-x-2">
+                                    <span class="text-lg">⚡</span>
+                                    <p class="font-semibold text-green-900">Review Physics Momentum</p>
+                                </div>
+                                <span class="px-2 py-1 bg-green-200 text-green-800 text-xs rounded-full font-medium">Quick Win</span>
+                            </div>
+                            <p class="text-sm text-green-700 mb-3">Great progress! Quick review to reinforce concepts</p>
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-full bg-green-200 rounded-full h-2 w-20">
+                                        <div class="bg-green-600 h-2 rounded-full" style="width: 89%"></div>
+                                    </div>
+                                    <span class="text-xs text-green-600 font-medium">89%</span>
+                                </div>
+                                <button onclick="startRecommendedStudy('physics')" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors">Quick Review</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="bg-white rounded-xl shadow-sm p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
+                    <div class="space-y-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                                <span class="text-green-600 text-sm">✓</span>
+                            </div>
+                            <div class="flex-1">
+                                <p class="text-sm font-medium text-gray-900">Completed "Linear Algebra Quiz"</p>
+                                <p class="text-xs text-gray-500">Score: 92% • 2 hours ago</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                <span class="text-blue-600 text-sm">📄</span>
+                            </div>
+                            <div class="flex-1">
+                                <p class="text-sm font-medium text-gray-900">Uploaded "Chemistry Notes.pdf"</p>
+                                <p class="text-xs text-gray-500">Processed successfully • 4 hours ago</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                                <span class="text-purple-600 text-sm">🎯</span>
+                            </div>
+                            <div class="flex-1">
+                                <p class="text-sm font-medium text-gray-900">Achieved "Study Streak" milestone</p>
+                                <p class="text-xs text-gray-500">10 consecutive days • Yesterday</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Documents Section -->
+        <div id="documents" class="section hidden">
+            <div class="mb-8">
+                <h2 class="text-3xl font-bold text-gray-900 mb-2">Document Processing</h2>
+                <p class="text-gray-600">Upload and process your study materials with AI-powered analysis</p>
+            </div>
+
+            <!-- Upload Area -->
+            <div class="glass-card rounded-xl p-8 mb-8 slide-in-left">
+                <div class="upload-zone rounded-xl p-12 text-center cursor-pointer" onclick="document.getElementById('fileInput').click()">
+                    <input type="file" id="fileInput" class="hidden" accept=".pdf,.doc,.docx,.txt" onchange="handleFileUpload(event)">
+                    <div class="w-20 h-20 bg-gradient-to-br from-purple-400 to-indigo-500 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg floating">
+                        <span class="text-3xl">📁</span>
+                    </div>
+                    <h3 class="text-xl font-bold gradient-text mb-3">Upload Study Materials</h3>
+                    <p class="text-gray-600 mb-4 text-lg">Drag and drop files or click to browse</p>
+                    <div class="flex items-center justify-center space-x-4 mb-4">
+                        <span class="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">PDF</span>
+                        <span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">DOC</span>
+                        <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">DOCX</span>
+                        <span class="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm font-medium">TXT</span>
+                    </div>
+                    <p class="text-sm text-gray-500">Maximum file size: 10MB</p>
+                </div>
+            </div>
+
+            <!-- Processing Status -->
+            <div id="processingStatus" class="hidden bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                <div class="flex items-center space-x-3">
+                    <div class="animate-spin w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+                    <span class="text-blue-800 font-medium">Processing document...</span>
+                </div>
+                <div class="mt-3 bg-blue-200 rounded-full h-2">
+                    <div id="processingProgress" class="bg-blue-600 h-2 rounded-full progress-bar" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <!-- Document Library -->
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Document Library</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="documentGrid">
+                    <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                        <div class="flex items-start space-x-3">
+                            <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                                <span class="text-red-600">📄</span>
+                            </div>
+                            <div class="flex-1">
+                                <h4 class="font-medium text-gray-900">Calculus Textbook Ch.5</h4>
+                                <p class="text-sm text-gray-500">PDF • 2.3 MB</p>
+                                <div class="flex items-center space-x-2 mt-2">
+                                    <span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Processed</span>
+                                    <span class="text-xs text-gray-500">15 questions generated</span>
+                                </div>
+                                <div class="flex space-x-2 mt-3">
+                                    <button onclick="viewDocument('calculus')" class="text-blue-600 hover:text-blue-800 text-sm font-medium">View</button>
+                                    <button onclick="generateQuiz('calculus')" class="text-purple-600 hover:text-purple-800 text-sm font-medium">Generate Quiz</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                        <div class="flex items-start space-x-3">
+                            <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                                <span class="text-blue-600">📄</span>
+                            </div>
+                            <div class="flex-1">
+                                <h4 class="font-medium text-gray-900">Physics Lab Report</h4>
+                                <p class="text-sm text-gray-500">DOCX • 1.8 MB</p>
+                                <div class="flex items-center space-x-2 mt-2">
+                                    <span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Processed</span>
+                                    <span class="text-xs text-gray-500">8 questions generated</span>
+                                </div>
+                                <div class="flex space-x-2 mt-3">
+                                    <button onclick="viewDocument('physics')" class="text-blue-600 hover:text-blue-800 text-sm font-medium">View</button>
+                                    <button onclick="generateQuiz('physics')" class="text-purple-600 hover:text-purple-800 text-sm font-medium">Generate Quiz</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Assessments Section -->
+        <div id="assessments" class="section hidden">
+            <div class="mb-8">
+                <h2 class="text-3xl font-bold text-gray-900 mb-2">Automated Assessments</h2>
+                <p class="text-gray-600">AI-generated quizzes and tests based on your study materials</p>
+            </div>
+
+            <!-- Quiz Generator -->
+            <div class="bg-white rounded-xl shadow-sm p-6 mb-8">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Create New Assessment</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Subject</label>
+                        <select id="quizSubject" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                            <option>Calculus</option>
+                            <option>Physics</option>
+                            <option>Chemistry</option>
+                            <option>Linear Algebra</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Difficulty</label>
+                        <select id="quizDifficulty" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                            <option>Beginner</option>
+                            <option>Intermediate</option>
+                            <option>Advanced</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Questions</label>
+                        <select id="quizLength" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                            <option>5 Questions</option>
+                            <option>10 Questions</option>
+                            <option>15 Questions</option>
+                            <option>20 Questions</option>
+                        </select>
+                    </div>
+                </div>
+                <button onclick="generateNewQuiz()" class="bg-purple-600 text-white px-6 py-2 rounded-md hover:bg-purple-700 transition-colors">Generate Assessment</button>
+            </div>
+
+            <!-- Active Quiz -->
+            <div id="activeQuiz" class="hidden bg-white rounded-xl shadow-sm p-6 mb-8">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-lg font-semibold text-gray-900">Calculus Integration Quiz</h3>
+                    <div class="flex items-center space-x-4">
+                        <span class="text-sm text-gray-500">Question <span id="currentQuestion">1</span> of <span id="totalQuestions">10</span></span>
+                        <div class="flex items-center space-x-2">
+                            <span class="text-sm text-gray-500">Time:</span>
+                            <span id="quizTimer" class="font-mono text-lg text-purple-600">15:00</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-6">
+                    <h4 class="text-lg font-medium text-gray-900 mb-4" id="questionText">What is the integral of x² with respect to x?</h4>
+                    <div class="space-y-3" id="answerOptions">
+                        <label class="quiz-option flex items-center space-x-4 p-4 border border-gray-200 rounded-xl cursor-pointer">
+                            <input type="radio" name="answer" value="a" class="text-purple-600 w-4 h-4">
+                            <div class="flex items-center space-x-3">
+                                <span class="w-8 h-8 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-sm font-semibold">A</span>
+                                <span class="text-gray-800 font-medium">x³/3 + C</span>
+                            </div>
+                        </label>
+                        <label class="quiz-option flex items-center space-x-4 p-4 border border-gray-200 rounded-xl cursor-pointer">
+                            <input type="radio" name="answer" value="b" class="text-purple-600 w-4 h-4">
+                            <div class="flex items-center space-x-3">
+                                <span class="w-8 h-8 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-sm font-semibold">B</span>
+                                <span class="text-gray-800 font-medium">2x + C</span>
+                            </div>
+                        </label>
+                        <label class="quiz-option flex items-center space-x-4 p-4 border border-gray-200 rounded-xl cursor-pointer">
+                            <input type="radio" name="answer" value="c" class="text-purple-600 w-4 h-4">
+                            <div class="flex items-center space-x-3">
+                                <span class="w-8 h-8 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-sm font-semibold">C</span>
+                                <span class="text-gray-800 font-medium">x³ + C</span>
+                            </div>
+                        </label>
+                        <label class="quiz-option flex items-center space-x-4 p-4 border border-gray-200 rounded-xl cursor-pointer">
+                            <input type="radio" name="answer" value="d" class="text-purple-600 w-4 h-4">
+                            <div class="flex items-center space-x-3">
+                                <span class="w-8 h-8 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-sm font-semibold">D</span>
+                                <span class="text-gray-800 font-medium">3x² + C</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-center">
+                    <button onclick="previousQuestion()" class="flex items-center space-x-2 px-6 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition-all duration-300 font-medium">
+                        <span>←</span>
+                        <span>Previous</span>
+                    </button>
+                    <div class="flex items-center space-x-4">
+                        <div class="flex space-x-2">
+                            <div class="w-2 h-2 bg-purple-600 rounded-full"></div>
+                            <div class="w-2 h-2 bg-gray-300 rounded-full"></div>
+                            <div class="w-2 h-2 bg-gray-300 rounded-full"></div>
+                            <div class="w-2 h-2 bg-gray-300 rounded-full"></div>
+                            <div class="w-2 h-2 bg-gray-300 rounded-full"></div>
+                        </div>
+                    </div>
+                    <button onclick="nextQuestion()" class="glow-button text-white px-6 py-3 rounded-xl font-medium flex items-center space-x-2">
+                        <span>Next Question</span>
+                        <span>→</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Assessment History -->
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Recent Assessments</h3>
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                                <span class="text-green-600 font-bold">92%</span>
+                            </div>
+                            <div>
+                                <h4 class="font-medium text-gray-900">Linear Algebra Quiz</h4>
+                                <p class="text-sm text-gray-500">10 questions • Completed 2 hours ago</p>
+                            </div>
+                        </div>
+                        <button onclick="reviewQuiz('linear-algebra')" class="text-purple-600 hover:text-purple-800 font-medium">Review</button>
+                    </div>
+                    <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+                                <span class="text-yellow-600 font-bold">76%</span>
+                            </div>
+                            <div>
+                                <h4 class="font-medium text-gray-900">Physics Momentum Test</h4>
+                                <p class="text-sm text-gray-500">15 questions • Completed yesterday</p>
+                            </div>
+                        </div>
+                        <button onclick="reviewQuiz('physics-momentum')" class="text-purple-600 hover:text-purple-800 font-medium">Review</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analytics Section -->
+        <div id="analytics" class="section hidden">
+            <div class="mb-8">
+                <h2 class="text-3xl font-bold text-gray-900 mb-2">Progress Analytics</h2>
+                <p class="text-gray-600">Detailed insights into your learning journey and performance trends</p>
+            </div>
+
+            <!-- Analytics Cards -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                <div class="bg-white rounded-xl shadow-sm p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Performance Trends</h3>
+                    <canvas id="performanceChart" width="400" height="200"></canvas>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Subject Breakdown</h3>
+                    <canvas id="subjectChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+
+            <!-- Detailed Analytics -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div class="lg:col-span-2 bg-white rounded-xl shadow-sm p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Learning Insights</h3>
+                    <div class="space-y-6">
+                        <div class="p-4 bg-blue-50 rounded-lg">
+                            <div class="flex items-center space-x-2 mb-2">
+                                <span class="text-blue-600">📈</span>
+                                <h4 class="font-medium text-blue-900">Improvement Trend</h4>
+                            </div>
+                            <p class="text-blue-800">Your average score has improved by 15% over the last month. Keep up the great work!</p>
+                        </div>
+                        <div class="p-4 bg-yellow-50 rounded-lg">
+                            <div class="flex items-center space-x-2 mb-2">
+                                <span class="text-yellow-600">⚠️</span>
+                                <h4 class="font-medium text-yellow-900">Areas for Focus</h4>
+                            </div>
+                            <p class="text-yellow-800">Calculus integration problems show lower accuracy (68%). Consider additional practice sessions.</p>
+                        </div>
+                        <div class="p-4 bg-green-50 rounded-lg">
+                            <div class="flex items-center space-x-2 mb-2">
+                                <span class="text-green-600">🎯</span>
+                                <h4 class="font-medium text-green-900">Strengths</h4>
+                            </div>
+                            <p class="text-green-800">Excellent performance in Linear Algebra (94% average) and Physics fundamentals (89% average).</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Study Goals</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-sm font-medium text-gray-700">Weekly Study Time</span>
+                                <span class="text-sm text-gray-500">18h / 20h</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="bg-purple-600 h-2 rounded-full" style="width: 90%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-sm font-medium text-gray-700">Quiz Completion</span>
+                                <span class="text-sm text-gray-500">7 / 10</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="bg-blue-600 h-2 rounded-full" style="width: 70%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-sm font-medium text-gray-700">Average Score Goal</span>
+                                <span class="text-sm text-gray-500">87% / 85%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="bg-green-600 h-2 rounded-full" style="width: 100%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let currentSection = 'dashboard';
+        let quizTimer = null;
+        let currentQuestionIndex = 0;
+        let quizTimeRemaining = 900; // 15 minutes
+
+        // Navigation
+        function showSection(section) {
+            // Hide all sections
+            document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
+            
+            // Show selected section
+            document.getElementById(section).classList.remove('hidden');
+            document.getElementById(section).classList.add('fade-in');
+            
+            // Update nav buttons
+            document.querySelectorAll('.nav-item').forEach(btn => {
+                btn.classList.remove('bg-white', 'bg-opacity-20', 'active');
+            });
+            event.target.closest('.nav-item').classList.add('bg-white', 'bg-opacity-20', 'active');
+            
+            currentSection = section;
+            
+            // Initialize section-specific content
+            if (section === 'analytics') {
+                setTimeout(initializeCharts, 100);
+            }
+        }
+
+        // File upload handling
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            // Show processing status
+            document.getElementById('processingStatus').classList.remove('hidden');
+            
+            // Simulate processing
+            let progress = 0;
+            const progressBar = document.getElementById('processingProgress');
+            
+            const interval = setInterval(() => {
+                progress += Math.random() * 15;
+                if (progress >= 100) {
+                    progress = 100;
+                    clearInterval(interval);
+                    setTimeout(() => {
+                        document.getElementById('processingStatus').classList.add('hidden');
+                        addDocumentToLibrary(file);
+                        showNotification('Document processed successfully! Quiz questions generated.', 'success');
+                    }, 500);
+                }
+                progressBar.style.width = progress + '%';
+            }, 200);
+        }
+
+        function addDocumentToLibrary(file) {
+            const grid = document.getElementById('documentGrid');
+            const docElement = document.createElement('div');
+            docElement.className = 'border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow';
+            docElement.innerHTML = `
+                <div class="flex items-start space-x-3">
+                    <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                        <span class="text-purple-600">📄</span>
+                    </div>
+                    <div class="flex-1">
+                        <h4 class="font-medium text-gray-900">${file.name}</h4>
+                        <p class="text-sm text-gray-500">${file.type.toUpperCase()} • ${(file.size / 1024 / 1024).toFixed(1)} MB</p>
+                        <div class="flex items-center space-x-2 mt-2">
+                            <span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Processed</span>
+                            <span class="text-xs text-gray-500">${Math.floor(Math.random() * 20) + 5} questions generated</span>
+                        </div>
+                        <div class="flex space-x-2 mt-3">
+                            <button onclick="viewDocument('${file.name}')" class="text-blue-600 hover:text-blue-800 text-sm font-medium">View</button>
+                            <button onclick="generateQuiz('${file.name}')" class="text-purple-600 hover:text-purple-800 text-sm font-medium">Generate Quiz</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            grid.appendChild(docElement);
+        }
+
+        // Quiz functionality
+        function generateNewQuiz() {
+            const subject = document.getElementById('quizSubject').value;
+            const difficulty = document.getElementById('quizDifficulty').value;
+            const length = document.getElementById('quizLength').value;
+            
+            showNotification(`Generating ${difficulty.toLowerCase()} ${subject} quiz with ${length}...`, 'info');
+            
+            setTimeout(() => {
+                document.getElementById('activeQuiz').classList.remove('hidden');
+                startQuizTimer();
+                showNotification('Quiz generated! Good luck!', 'success');
+            }, 2000);
+        }
+
+        function startQuizTimer() {
+            quizTimer = setInterval(() => {
+                quizTimeRemaining--;
+                const minutes = Math.floor(quizTimeRemaining / 60);
+                const seconds = quizTimeRemaining % 60;
+                document.getElementById('quizTimer').textContent = 
+                    `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                
+                if (quizTimeRemaining <= 0) {
+                    clearInterval(quizTimer);
+                    showNotification('Time\'s up! Quiz submitted automatically.', 'warning');
+                }
+            }, 1000);
+        }
+
+        function nextQuestion() {
+            const selectedAnswer = document.querySelector('input[name="answer"]:checked');
+            if (!selectedAnswer) {
+                showNotification('Please select an answer before continuing.', 'warning');
+                return;
+            }
+            
+            currentQuestionIndex++;
+            if (currentQuestionIndex >= 10) {
+                finishQuiz();
+                return;
+            }
+            
+            document.getElementById('currentQuestion').textContent = currentQuestionIndex + 1;
+            
+            // Clear previous selection
+            document.querySelectorAll('input[name="answer"]').forEach(input => input.checked = false);
+            
+            // Simulate loading next question
+            showNotification('Loading next question...', 'info');
+        }
+
+        function previousQuestion() {
+            if (currentQuestionIndex > 0) {
+                currentQuestionIndex--;
+                document.getElementById('currentQuestion').textContent = currentQuestionIndex + 1;
+            }
+        }
+
+        function finishQuiz() {
+            clearInterval(quizTimer);
+            document.getElementById('activeQuiz').classList.add('hidden');
+            const score = Math.floor(Math.random() * 30) + 70; // Random score between 70-100
+            showNotification(`Quiz completed! Your score: ${score}%`, 'success');
+        }
+
+        // Study recommendations
+        function startRecommendedStudy(subject) {
+            showNotification(`Starting personalized ${subject} study session...`, 'info');
+            setTimeout(() => {
+                showSection('assessments');
+                generateNewQuiz();
+            }, 1000);
+        }
+
+        // Document actions
+        function viewDocument(docName) {
+            showNotification(`Opening ${docName} for review...`, 'info');
+        }
+
+        function generateQuiz(docName) {
+            showNotification(`Generating quiz from ${docName}...`, 'info');
+            setTimeout(() => {
+                showSection('assessments');
+                document.getElementById('activeQuiz').classList.remove('hidden');
+                startQuizTimer();
+            }, 2000);
+        }
+
+        function reviewQuiz(quizId) {
+            showNotification('Loading quiz review with detailed explanations...', 'info');
+        }
+
+        // Analytics charts
+        function initializeCharts() {
+            // Performance trend chart
+            const performanceCtx = document.getElementById('performanceChart').getContext('2d');
+            new Chart(performanceCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6'],
+                    datasets: [{
+                        label: 'Average Score (%)',
+                        data: [72, 76, 81, 78, 85, 87],
+                        borderColor: '#8B5CF6',
+                        backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            min: 60,
+                            max: 100
+                        }
+                    }
+                }
+            });
+
+            // Subject breakdown chart
+            const subjectCtx = document.getElementById('subjectChart').getContext('2d');
+            new Chart(subjectCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Calculus', 'Physics', 'Linear Algebra', 'Chemistry'],
+                    datasets: [{
+                        data: [30, 25, 25, 20],
+                        backgroundColor: ['#8B5CF6', '#3B82F6', '#10B981', '#F59E0B'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        // Notification system
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            const icons = {
+                success: '✅',
+                error: '❌',
+                warning: '⚠️',
+                info: 'ℹ️'
+            };
+            const colors = {
+                success: 'bg-green-50 border-green-200 text-green-800',
+                error: 'bg-red-50 border-red-200 text-red-800',
+                warning: 'bg-yellow-50 border-yellow-200 text-yellow-800',
+                info: 'bg-blue-50 border-blue-200 text-blue-800'
+            };
+            
+            notification.className = `notification fixed top-6 right-6 p-4 border rounded-xl shadow-lg z-50 ${colors[type]} max-w-sm`;
+            notification.innerHTML = `
+                <div class="flex items-center space-x-3">
+                    <span class="text-lg">${icons[type]}</span>
+                    <span class="font-medium">${message}</span>
+                    <button onclick="this.parentElement.parentElement.remove()" class="ml-auto text-gray-400 hover:text-gray-600">
+                        <span class="text-lg">×</span>
+                    </button>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.style.animation = 'slideOutRight 0.3s ease-in forwards';
+                    setTimeout(() => notification.remove(), 300);
+                }
+            }, 4000);
+        }
+
+        // Initialize dashboard on load
+        document.addEventListener('DOMContentLoaded', function() {
+            showSection('dashboard');
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97e60fd237339f4a',t:'MTc1Nzc0OTkxMS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
